@@ -36,6 +36,13 @@ const pickIngredientMsg = {
   ]
 };
 
+const createList = o => o.map(o => ({
+    title: o.title,
+    image_url: o.thumbnail,
+    subtitle: o.ingredients
+  })
+)
+
 bot.on('message', (payload, reply) => {
   let {text, quick_reply} = payload.message;
 
@@ -50,12 +57,21 @@ bot.on('message', (payload, reply) => {
           .then(r => JSON.parse(r.body))
           .then(({results}) => {
             // Get the response body
-            let recipes = results.slice(0,3).map(o => o.title.replace(/[\r\n]/g, ''));
-            recipes.forEach(text => reply({text}, (err) => { 
-              if (err) throw err; 
-            }));
+            let cards = createList(results.slice(0,3));
+            let recipeCards = {
+                "attachment":{
+                "type":"template",
+                "payload":{
+                   "template_type": "list",
+                    "top_element_style": "compact",
+                    "elements": cards
+                }
+              }
+            };
 
-            console.log('type', typeof recipes, JSON.stringify(recipes, null, 2));
+            reply(recipeCards, (err) => {});
+
+            console.log('recipes', results.length);
           });
       }
 
