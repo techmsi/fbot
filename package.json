@@ -4,6 +4,7 @@
   "description": "",
   "main": "server.js",
   "scripts": {
+    "expose": "ngrok http 5000",
     "start-local": "nodemon server",
     "start": "node server"
   },
@@ -11,6 +12,12 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "ngrok": "^2.2.8",
     "nodemon": "^1.11.0"
+  },
+  "dependencies": {
+    "body-parser": "^1.17.1",
+    "express": "^4.15.2",
+    "messenger-bot": "^2.4.0"
   }
 }
