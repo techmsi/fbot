@@ -1,3 +1,4 @@
+// Facebook - Messenger
 const token = process.env.FB_PAGE_TOKEN;
 const vtoken = process.env.FB_VERIFY_TOKEN;
 const appSecret = process.env.FB_APP_SECRET;
@@ -9,7 +10,6 @@ const requestify = require('requestify');
 const express = require('express');
 const bodyParser = require('body-parser');
 const Bot = require('messenger-bot');
-const _log = (event, obj) => console.log(`[${event}] Payload -`, JSON.stringify(obj, null, 2));
 
 let bot = new Bot({
   token: token,
@@ -17,44 +17,66 @@ let bot = new Bot({
   app_secret: appSecret
 });
 
-bot.on('error', (err) => {
-  console.log(err.message);
-});
-
-const pickIngredientMsg = {
-  'text': 'Pick an ingredient:',
-  'quick_replies': [
-    {
-      'content_type': 'text',
-      'title': 'onions',
-      'payload': 'CHOSE_ONIONS'
-    },
-    {
-      'content_type': 'text',
-      'title': 'garlic',
-      'payload': 'CHOSE_GARLIC'
-    }
-  ]
-};
+// Helpers
 const happy = decodeURI('\u2764');
+const _log = (event, obj) => console.log(`[${event}] Payload -`, JSON.stringify(obj, null, 2));
+
+const _trim = str => str.replace(/(\r\n|\n|\r|\t)/gm, '');
+
+const _createIngredientList = (arr) => arr.map(o => ({
+  content_type: 'text',
+  title: o,
+  payload: `CHOSE_${o.toUpperCase()}`
+}));
+
+let pickIngredientMsg = {
+  'text': 'Pick an ingredient:',
+  'quick_replies': _createIngredientList(['onions', 'garlic', 'rice'])
+};
+
+
 const _createList = (arr) => arr.map(o => ({
-  title: o.title,
+  title: _trim(o.title),
   image_url: o.thumbnail,
   subtitle: o.ingredients,
   buttons: [{
     type: 'postback',
-    title: `${happy} - ${o.title}`,
-    payload: o.title
+    title: `${happy} - View`,
+    payload: JSON.stringify(
+      {
+        title: _trim(o.title),
+        image_url: o.thumbnail,
+        buttons: [
+          {
+            'type': 'web_url',
+            'url': o.href,
+            'title': 'View Recipe'
+          }]
+      })
   }]
 })
 );
 
+bot.on('error', (err) => {
+  console.log(err.message);
+});
+
 bot.on('postback', (payload, reply, actions) => {
   _log('postback', payload);
-  let { postback } = payload;
+  let { payload: choice } = payload.postback;
 
-  reply({ text: `I made "${postback.payload}" last night.
-  ${happy} Mmmm...` }, (err, info) => {
+  let card = {
+    'attachment': {
+      'type': 'template',
+      'payload': {
+        'template_type': 'generic',
+        'elements': [JSON.parse(choice)]
+      }
+    }
+  };
+
+  reply({ text: `I made this last night. ${happy} Mmmm... \n\nCan't wait to see how your "${JSON.parse(choice).title}" comes out.` }, (err, info) => {
+    reply(card, (err, info) => {});
   });
 });
 
@@ -96,6 +118,7 @@ bot.on('message', (payload, reply) => {
     });
   });
 });
+
 // Handle verification and Messaging
 let app = express();
 
