@@ -2,7 +2,9 @@
 const token = process.env.FB_PAGE_TOKEN;
 const vtoken = process.env.FB_VERIFY_TOKEN;
 const appSecret = process.env.FB_APP_SECRET;
+const Card = require('./Card');
 
+const { happy, _log } = require('./helpers');
 const port = process.env.PORT || 5000;
 const API_ENDPOINT = 'http://www.recipepuppy.com/api/?i=';
 
@@ -17,45 +19,8 @@ let bot = new Bot({
   app_secret: appSecret
 });
 
-// Helpers
-const happy = decodeURI('\u2764');
-const _log = (event, obj) => console.log(`[${event}] Payload -`, JSON.stringify(obj, null, 2));
-
-const _trim = str => str.replace(/(\r\n|\n|\r|\t)/gm, '');
-
-const _createIngredientList = (arr) => arr.map(o => ({
-  content_type: 'text',
-  title: o,
-  payload: `CHOSE_${o.toUpperCase()}`
-}));
-
-let pickIngredientMsg = {
-  'text': 'Pick an ingredient:',
-  'quick_replies': _createIngredientList(['onions', 'garlic', 'rice'])
-};
-
-
-const _createList = (arr) => arr.map(o => ({
-  title: _trim(o.title),
-  image_url: o.thumbnail,
-  subtitle: o.ingredients,
-  buttons: [{
-    type: 'postback',
-    title: `${happy} - View`,
-    payload: JSON.stringify(
-      {
-        title: _trim(o.title),
-        image_url: o.thumbnail,
-        buttons: [
-          {
-            'type': 'web_url',
-            'url': o.href,
-            'title': 'View Recipe'
-          }]
-      })
-  }]
-})
-);
+const RecipeCard = new Card();
+let pickIngredientMsg = RecipeCard.buttons(['onions', 'garlic', 'rice']);
 
 bot.on('error', (err) => {
   console.log(err.message);
@@ -64,18 +29,10 @@ bot.on('error', (err) => {
 bot.on('postback', (payload, reply, actions) => {
   _log('postback', payload);
   let { payload: choice } = payload.postback;
+  let choiceObj = JSON.parse(choice);
+  let card = RecipeCard.single(choiceObj);
 
-  let card = {
-    'attachment': {
-      'type': 'template',
-      'payload': {
-        'template_type': 'generic',
-        'elements': [JSON.parse(choice)]
-      }
-    }
-  };
-
-  reply({ text: `I made this last night. ${happy} Mmmm... \n\nCan't wait to see how your "${JSON.parse(choice).title}" comes out.` }, (err, info) => {
+  reply({ text: `I made this last night. ${happy} Mmmm... \n\nCan't wait to see how your "${choiceObj.title}" comes out.` }, (err, info) => {
     reply(card, (err, info) => {});
   });
 });
@@ -94,19 +51,8 @@ bot.on('message', (payload, reply) => {
           .then(r => JSON.parse(r.body))
           .then(({results}) => {
             // Get the response body
-            let cards = _createList(results.slice(0, 3));
-            let recipeCards = {
-              'attachment': {
-                'type': 'template',
-                'payload': {
-                  'template_type': 'list',
-                  'top_element_style': 'compact',
-                  'elements': cards
-                }
-              }
-            };
-
-            reply(recipeCards, (err) => {
+            let cards = RecipeCard.list(results.slice(0, 3));
+            reply(cards, (err) => {
             });
 
             console.log('recipes', cards.length);
@@ -141,7 +87,7 @@ app.listen(port, (err) => {
     return console.log('Something bad happened', err);
   }
 
-  console.log(`FB Bot Server is listening on ${port}`);
+  console.log(`${happy} FB Bot Server is listening on ${port}`);
 });
 
 module.exports = app;
