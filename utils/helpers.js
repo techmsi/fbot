@@ -1,7 +1,10 @@
 const happy = decodeURI('\u2764');
-const _log = (event, obj) => console.log(`[${event}] Payload -`, JSON.stringify(obj, null, 2));
+const {bold: {yellow}} = require('chalk');
 
+const _replacer = (key, value) => (key === 'postback') ? JSON.parse(value.payload) : value;
 const _trim = str => str.replace(/(\r\n|\n|\r|\t)/gm, '');
+
+const log = (event, obj) => console.log(yellow.bgBlack(`[${event}] Payload -`), JSON.stringify(obj, _replacer, 2));
 
 const createButtonList = (arr) => arr.map(o => ({
   content_type: 'text',
@@ -32,8 +35,8 @@ const createImageList = (arr) => arr.map(o => ({
 );
 
 module.exports = {
-    happy,
-    _log,
-    createButtonList,
-    createImageList
+  happy,
+  log,
+  createButtonList,
+  createImageList
 };

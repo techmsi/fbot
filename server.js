@@ -2,9 +2,9 @@
 const token = process.env.FB_PAGE_TOKEN;
 const vtoken = process.env.FB_VERIFY_TOKEN;
 const appSecret = process.env.FB_APP_SECRET;
-const Card = require('./Card');
+const FBCard = require('./Card/FBCard');
 
-const { happy, _log } = require('./helpers');
+const { happy, log } = require('./utils/helpers');
 const port = process.env.PORT || 5000;
 const API_ENDPOINT = 'http://www.recipepuppy.com/api/?i=';
 
@@ -19,7 +19,7 @@ let bot = new Bot({
   app_secret: appSecret
 });
 
-const RecipeCard = new Card();
+const RecipeCard = new FBCard();
 let pickIngredientMsg = RecipeCard.buttons(['onions', 'garlic', 'rice']);
 
 bot.on('error', (err) => {
@@ -27,7 +27,7 @@ bot.on('error', (err) => {
 });
 
 bot.on('postback', (payload, reply, actions) => {
-  _log('postback', payload);
+  log('choice - postback', payload);
   let { payload: choice } = payload.postback;
   let choiceObj = JSON.parse(choice);
   let card = RecipeCard.single(choiceObj);
@@ -52,15 +52,17 @@ bot.on('message', (payload, reply) => {
           .then(({results}) => {
             // Get the response body
             let cards = RecipeCard.list(results.slice(0, 3));
+            log(`recipes (${results.length})`, cards);
+            return cards;
+          })
+          .then(cards => {
             reply(cards, (err) => {
             });
-
-            console.log('recipes', cards.length);
           });
       }
 
       console.log(`Echoed back to ${profile.first_name} ${profile.last_name}: ${text}`);
-      _log('message', payload);
+      log('message', payload);
     });
   });
 });
