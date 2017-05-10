@@ -1,3 +1,6 @@
+// Load Environment Variables
+const dotenv = require('dotenv');
+dotenv.load();
 // Facebook - Messenger
 const token = process.env.FB_PAGE_TOKEN;
 const vtoken = process.env.FB_VERIFY_TOKEN;
@@ -11,6 +14,8 @@ const API_ENDPOINT = 'http://www.recipepuppy.com/api/?i=';
 const requestify = require('requestify');
 const express = require('express');
 const bodyParser = require('body-parser');
+let app = express();
+
 const Bot = require('messenger-bot');
 
 let bot = new Bot({
@@ -33,21 +38,26 @@ bot.on('postback', (payload, reply, actions) => {
   let card = RecipeCard.single(choiceObj);
 
   reply({ text: `I made this last night. ${happy} Mmmm... \n\nCan't wait to see how your "${choiceObj.title}" comes out.` }, (err, info) => {
-    reply(card, (err, info) => {});
+    reply(card, (err, info) => {
+    });
   });
 });
 
 bot.on('message', (payload, reply) => {
+  let senderId = payload.sender.id;
   let {text, quick_reply} = payload.message;
 
-  bot.getProfile(payload.sender.id, (err, profile) => {
+  bot.getProfile(senderId, (err, profile) => {
     if (err) throw err;
+
+    let {first_name, last_name} = profile;
 
     reply(pickIngredientMsg, (err) => {
       if (err) throw err;
 
       if (quick_reply) {
-        requestify.get(`${API_ENDPOINT}${text}`)
+        requestify
+          .get(`${API_ENDPOINT}${text}`)
           .then(r => JSON.parse(r.body))
           .then(({results}) => {
             // Get the response body
@@ -61,19 +71,22 @@ bot.on('message', (payload, reply) => {
           });
       }
 
-      console.log(`Echoed back to ${profile.first_name} ${profile.last_name}: ${text}`);
+      console.log(`Echoed back to ${first_name} ${last_name}: "${text}"`);
       log('message', payload);
     });
   });
 });
 
 // Handle verification and Messaging
-let app = express();
-
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: true
 }));
+
+// Health Check Endpoint
+app.get('/health', (req, res) => {
+  res.send({status: 'ok', message: 'FB Bot Server is healthy'});
+});
 
 app.get('/', (req, res) => {
   return bot._verify(req, res);
