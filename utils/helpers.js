@@ -6,6 +6,13 @@ const _trim = str => str.replace(/(\r\n|\n|\r|\t)/gm, '');
 
 const log = (event, obj) => console.log(yellow.bgBlack(`[${event}] Payload -`), JSON.stringify(obj, _replacer, 2));
 
+const parseJson = (str) => {
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    return str;
+  }
+};
 const createButtonList = (arr) => arr.map(o => ({
   content_type: 'text',
   title: o,
@@ -18,7 +25,7 @@ const createImageList = (arr) => arr.map(o => ({
   subtitle: o.ingredients,
   buttons: [{
     type: 'postback',
-    title: `${happy} - View`,
+    title: `${happy} - See More`,
     payload: JSON.stringify(
       {
         title: _trim(o.title),
@@ -28,6 +35,9 @@ const createImageList = (arr) => arr.map(o => ({
             'type': 'web_url',
             'url': o.href,
             'title': 'View Recipe'
+          },
+          {
+            'type': 'element_share'
           }]
       })
   }]
@@ -37,6 +47,7 @@ const createImageList = (arr) => arr.map(o => ({
 module.exports = {
   happy,
   log,
+  parseJson,
   createButtonList,
   createImageList
 };
